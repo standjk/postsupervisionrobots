@@ -10,3 +10,10 @@ spring:
     multipart:
       max-file-size: 1MB
       max-request-size: 1MB
+mybatis:
+  #mapper????
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com/gzb/postsupervisionrobots/entity
+  configuration:
+    #??????
+    map-underscore-to-camel-case: true
