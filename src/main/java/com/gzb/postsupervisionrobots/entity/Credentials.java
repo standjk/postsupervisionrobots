@@ -35,7 +35,7 @@ public class Credentials {
 
     //金额
     @Nullable
-    public BigDecimal Amount;
+    public BigDecimal amount;
 
 
     //凭证号码
@@ -60,7 +60,7 @@ public class Credentials {
         Credentials that = (Credentials) o;
         return (fileName == null || Objects.equals(fileName, that.fileName)) && (customerName == null || Objects.equals(customerName, that.customerName))
                 && (account == null || Objects.equals(account, that.account)) && (transactionName == null || Objects.equals(transactionName, that.transactionName))
-                && (currencyType == null || Objects.equals(currencyType, that.currencyType)) && (Amount == null || Amount.compareTo(that.Amount) == 0)
+                && (currencyType == null || Objects.equals(currencyType, that.currencyType)) && (amount == null || amount.compareTo(that.amount) == 0)
                 && (voucherId == null || Objects.equals(voucherId, that.voucherId))
                 && (institution == null || Objects.equals(institution, that.institution))
                 && (transactionDateTime == null || Objects.equals(transactionDateTime, that.transactionDateTime))
@@ -69,7 +69,7 @@ public class Credentials {
 
     @Override
     public int hashCode() {
-        return Objects.hash(fileName, customerName, account, transactionName, currencyType, Amount, voucherId, institution, transactionDateTime, subaccountId);
+        return Objects.hash(fileName, customerName, account, transactionName, currencyType, amount, voucherId, institution, transactionDateTime, subaccountId);
     }
 
     @Override
@@ -80,7 +80,7 @@ public class Credentials {
                 ", account='" + account + '\'' +
                 ", transactionName='" + transactionName + '\'' +
                 ", currencyType='" + currencyType + '\'' +
-                ", Amount=" + Amount +
+                ", amount=" + amount +
                 ", voucherId='" + voucherId + '\'' +
                 ", institution='" + institution + '\'' +
                 ", transactionDateTime='" + transactionDateTime + '\'' +

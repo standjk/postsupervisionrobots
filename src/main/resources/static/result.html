@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>事后监督系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f2f2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+        .header {
+            background-color: darkred;
+            color: #ffffff;
+            text-align: center;
+            width: 100%;
+            padding: 0 0;
+            font-size: 20px;
+            margin-bottom: 0;
+        }
+        .container {
+            display: flex;
+            width: 90%;
+            height: 80vh;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        .file-list {
+            width: 300px;
+            background-color: rgb(238, 241, 246);
+            padding: 10px;
+            border-right: 1px solid #ddd;
+            color:#555555;
+        }
+        .file-list-header {
+            background-color: darkred;
+            color: white;
+            text-align: center;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .file-name {
+            padding: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .file-name:hover {
+            background-color: #e19099;
+        }
+        .selected {
+            background-color: darkred;
+            color: white;
+        }
+        .result-container {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: darkred;
+            color: white;
+            padding: 5px;
+            margin-bottom: 5px;
+        }
+        .ocr-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .ocr-item-key {
+            font-weight: bold;
+            color: #333;
+        }
+        .ocr-item-value {
+            color: #555;
+        }
+        .mismatch {
+            color: red;
+            font-weight: bold;
+        }
+        .buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: darkred;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header"><div class="header">
+    <h2>事后监督系统</h2>
+</div>
+</div>
+
+<div class="container" id="resultContainer">
+    <div class="file-list">
+        <div class="file-list-header">文件列表</div>
+        <div id="fileList"></div>
+    </div>
+
+    <div class="result-container">
+        <div class="result-header">
+        <div class="ocr-header" style="text-align: left;">凭证条目</div>
+        <div class="ocr-header">数据库信息</div>
+        <div class="ocr-header" style="text-align: right;">OCR结果</div>
+        </div>
+        <div id="ocrResult"></div>
+        <div class="buttons">
+            <button onclick="saveAsPDF()">保存为PDF</button>
+            <button onclick="goBack()">返回</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const ocrResult = localStorage.getItem('ocrResult');
+        const ocrResultContainer = document.getElementById('ocrResult');
+        const fileListContainer = document.getElementById('fileList');
+
+        if (ocrResult) {
+            const resultData = JSON.parse(ocrResult).data;
+            resultData.forEach((pair, index) => {
+                const filenameHeader = document.createElement('div');
+                filenameHeader.className = 'file-name';
+                filenameHeader.textContent = `${pair[1].fileName}`;
+                filenameHeader.onclick = () => toggleContent(index);
+                fileListContainer.appendChild(filenameHeader);
+            });
+        }
+
+        const toggleContent = (index) => {
+            const selectedFileNames = document.querySelectorAll('.file-name');
+            selectedFileNames.forEach((fileName, idx) => {
+                fileName.classList.remove('selected');
+                if (idx === index) {
+                    fileName.classList.add('selected');
+                    displayTransactionInfo(index);
+                }
+            });
+        };
+
+        const displayTransactionInfo = (index) => {
+            const resultData = JSON.parse(ocrResult).data;
+            const pair = resultData[index];
+            ocrResultContainer.innerHTML = ''; // Clear previous results
+
+            if (!pair[0]) {
+                const errorMessage = document.createElement('div');
+                errorMessage.textContent = '无法查询到数据库信息';
+                errorMessage.style.color = 'red';
+                errorMessage.style.fontWeight = 'bold';
+                ocrResultContainer.appendChild(errorMessage);
+                return;
+            }
+
+            const transactionInfo = [
+                {key: '交易流水', dbValue: pair[0].account, ocrValue: pair[1].account},
+                {key: '金额', dbValue: pair[0].amount, ocrValue: pair[1].amount},
+                {key: '币种', dbValue: pair[0].currencyType, ocrValue: pair[1].currencyType},
+                {key: '客户名称', dbValue: pair[0].customerName, ocrValue: pair[1].customerName},
+                {key: '交易机构', dbValue: pair[0].institution, ocrValue: pair[1].institution},
+                {key: '交易时间', dbValue: pair[0].transactionDateTime, ocrValue: pair[1].transactionDateTime},
+                {key: '交易ID', dbValue: pair[0].voucherId, ocrValue: pair[1].voucherId},
+                {key: '凭证类型', dbValue: pair[0].transactionName, ocrValue: pair[1].transactionName},
+                {key: '子户号', dbValue: pair[0].subaccountId, ocrValue: pair[1].subaccountId}
+            ];
+
+            transactionInfo.forEach(info => {
+                const ocrItem = document.createElement('div');
+                ocrItem.className = 'ocr-item';
+
+                const ocrItemKey = document.createElement('div');
+                ocrItemKey.className = 'ocr-item-key';
+                ocrItemKey.textContent = info.key;
+
+                const dbItemValue = document.createElement('div');
+                dbItemValue.className = 'ocr-item-value';
+                dbItemValue.textContent = `${info.dbValue}`;
+
+                const ocrItemValue = document.createElement('div');
+                ocrItemValue.className = 'ocr-item-value';
+                ocrItemValue.textContent = `${info.ocrValue}`;
+
+                if (info.dbValue !== info.ocrValue) {
+                    ocrItemValue.classList.add('mismatch');
+                }
+
+                ocrItem.appendChild(ocrItemKey);
+                ocrItem.appendChild(dbItemValue);
+                ocrItem.appendChild(ocrItemValue);
+                ocrResultContainer.appendChild(ocrItem);
+            });
+        }
+    });
+
+    function goBack() {
+        window.history.back();
+    }
+
+    function saveAsPDF() {
+        const ocrResult = localStorage.getItem('ocrResult');
+        const resultData = JSON.parse(ocrResult).data;
+        const pdfContent = document.createElement('div');
+        pdfContent.style.fontFamily = 'Arial, sans-serif';
+        pdfContent.style.padding = '20px';
+
+        resultData.forEach((pair, index) => {
+            const fileNameHeader = document.createElement('h2');
+            fileNameHeader.textContent = `文件名: ${pair[1].fileName}`;
+            fileNameHeader.style.marginTop = '20px';
+            fileNameHeader.style.marginBottom = '10px';
+            pdfContent.appendChild(fileNameHeader);
+
+            if (pair[0] === null) {
+                const noDbInfo = document.createElement('div');
+                noDbInfo.textContent = '无法查询到数据库信息';
+                noDbInfo.style.color = 'red';
+                noDbInfo.style.marginBottom = '10px';
+                pdfContent.appendChild(noDbInfo);
+            } else {
+                const transactionInfo = [
+                    { key: '交易流水', dbValue: pair[0].account, ocrValue: pair[1].account },
+                    { key: '金额', dbValue: pair[0].amount, ocrValue: pair[1].amount },
+                    { key: '币种', dbValue: pair[0].currencyType, ocrValue: pair[1].currencyType },
+                    { key: '客户名称', dbValue: pair[0].customerName, ocrValue: pair[1].customerName },
+                    { key: '交易机构', dbValue: pair[0].institution, ocrValue: pair[1].institution },
+                    { key: '交易时间', dbValue: pair[0].transactionDateTime, ocrValue: pair[1].transactionDateTime },
+                    { key: '交易ID', dbValue: pair[0].voucherId, ocrValue: pair[1].voucherId },
+                    { key: '凭证类型', dbValue: pair[0].transactionName, ocrValue: pair[1].transactionName },
+                    { key: '子户号', dbValue: pair[0].subaccountId, ocrValue: pair[1].subaccountId }
+                ];
+
+                transactionInfo.forEach(info => {
+                    const infoDiv = document.createElement('div');
+                    infoDiv.style.display = 'flex';
+                    infoDiv.style.justifyContent = 'space-between';
+                    infoDiv.style.borderBottom = '1px solid #e0e0e0';
+                    infoDiv.style.padding = '5px 0';
+
+                    const keyDiv = document.createElement('div');
+                    keyDiv.style.flex = '1';
+                    keyDiv.style.textAlign = 'left';
+                    keyDiv.textContent = info.key;
+
+                    const dbValueDiv = document.createElement('div');
+                    dbValueDiv.style.flex = '1';
+                    dbValueDiv.style.textAlign = 'center';
+                    dbValueDiv.textContent = `${info.dbValue}`;
+
+                    const ocrValueDiv = document.createElement('div');
+                    ocrValueDiv.style.flex = '1';
+                    ocrValueDiv.style.textAlign = 'right';
+                    ocrValueDiv.textContent = `${info.ocrValue}`;
+                    if (info.dbValue !== info.ocrValue) {
+                        ocrValueDiv.style.color = 'red';
+                        ocrValueDiv.style.fontWeight = 'bold';
+                    }
+
+                    infoDiv.appendChild(keyDiv);
+                    infoDiv.appendChild(dbValueDiv);
+                    infoDiv.appendChild(ocrValueDiv);
+                    pdfContent.appendChild(infoDiv);
+                });
+            }
+        });
+
+        const pdfOptions = {
+            margin: 10,
+            filename: 'ocr_result.pdf',
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().from(pdfContent).set(pdfOptions).save();
+    }
+
+</script>
+</body>
+</html>

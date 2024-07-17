@@ -8,7 +8,7 @@ import java.util.ArrayList;
 
 // 通过文件名作为主键查询数据库
 @Mapper
-public interface PythonScriptMapper {
+public interface RecognitionMapper {
 
     //    @ResponseBody
     ArrayList<Credentials> selectByFileName(@Param("fileNameList") ArrayList<String> fileNameList);

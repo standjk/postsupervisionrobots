@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>File Upload</title>
+    <title>广州银行交易凭证识别系统</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,38 +14,44 @@
             align-items: center;
             height: 100vh;
         }
-
         .container {
             background-color: #fff;
-            padding: 30px;
+            padding: 50px;
             border-radius: 10px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-            width: 500px;
+            width: 800px;
             max-width: 90%;
             animation: fadeIn 1s ease-in-out;
             text-align: center;
         }
-
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .header img {
+            margin-right: 20px;
+        }
         .message {
             margin-top: 10px;
             padding: 10px;
             border-radius: 5px;
         }
-
         .error {
             background-color: #f8d7da;
             color: #721c24;
         }
-
         .success {
             background-color: #d4edda;
             color: #155724;
         }
-
         .hidden {
             display: none;
         }
-
+        .renew {
+            display: none;
+        }
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -56,14 +62,12 @@
                 transform: scale(1);
             }
         }
-
         .file-input {
             position: relative;
             width: 100%;
             height: 45px;
             margin-bottom: 20px;
         }
-
         .file-input input[type="file"] {
             position: absolute;
             width: 100%;
@@ -73,12 +77,11 @@
             opacity: 0;
             cursor: pointer;
         }
-
         .file-input label {
             display: block;
             width: 100%;
             height: 100%;
-            background-color: #007bff;
+            background-color: darkred;
             color: white;
             text-align: center;
             line-height: 45px;
@@ -86,50 +89,111 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
-
         .file-input label:hover {
-            background-color: #0056b3;
+            background-color: #1200b3;
         }
-
         #dropZone {
             width: 100%;
-            height: 100px;
-            border: 2px dashed #007bff;
+            height: 150px;
+            border: 2px dashed darkred;
             border-radius: 5px;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #007bff;
-            margin-bottom: 20px;
+            color: darkred;
+            margin-bottom: 10px;
         }
-
         #fileList {
             list-style: none;
             padding: 0;
             margin: 0;
         }
-
         #fileList li {
             margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .remove-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .remove-btn:hover {
+            background-color: #c82333;
+        }
+        .more-files {
+            display: none;
+        }
+        .show-more {
+            color: darkred;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .overlay-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .overlay-content p {
+            margin: 0;
+            padding: 10px;
+        }
+        .overlay-content button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: darkred;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .overlay-content button:hover {
+            background-color: #e19099;
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <h2>文件上传</h2>
-    <div id="dropZone">拖拽文件到此处或点击选择文件</div>
+    <div class="header">
+        <img src="http://www.gzcb.com.cn/images/logo.png" style="width: 130px; height: 35px;">
+        <h2>交易凭证识别系统</h2>
+    </div>
+    <div id="dropZone" onclick="document.getElementById('file').click();">
+        拖拽文件到此处或<span style="text-decoration: underline; cursor: pointer;">点击此处选择文件</span>
+    </div>
     <form id="uploadForm">
         <div class="file-input">
-            <input type="file" id="file" name="file" accept="application/pdf" multiple required>
-            <label for="file">选择PDF文件</label>
+            <input type="file" id="file" name="file" accept="application/pdf" multiple required style="display: none;">
         </div>
         <ul id="fileList"></ul>
-        <button type="submit"
-                style="width: 100%; padding: 10px; border: none; background-color: #007bff; color: white; border-radius: 5px;">
-            上传
-        </button>
+        <button type="submit" style="width: 30%; padding: 10px; border: none; background-color: darkred; color: white; border-radius: 5px;">上传</button>
     </form>
     <div id="message" class="message hidden"></div>
+</div>
+
+<div class="overlay" id="loadingOverlay">
+    <div class="overlay-content">
+        <p id="loadingMessage">正在识别...</p>
+        <button id="viewResultBtn" class="hidden" onclick="viewResult()">查看识别结果</button>
+        <button id="renewBtn" class="renew" onclick="renew()">继续识别</button>
+    </div>
 </div>
 
 <script>
@@ -138,79 +202,166 @@
     const fileList = document.getElementById('fileList');
     const uploadForm = document.getElementById('uploadForm');
     const messageDiv = document.getElementById('message');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingMessage = document.getElementById('loadingMessage');
+    const viewResultBtn = document.getElementById('viewResultBtn');
+    const renewBtn = document.getElementById('renewBtn');
+    let filesArray = [];
 
-    function updateFileList(files) {
-        Array.from(files).forEach(file => {
+    function updateFileList() {
+        fileList.innerHTML = '';
+        const visibleFiles = filesArray.slice(0, 5);
+        visibleFiles.forEach((file, index) => {
             const li = document.createElement('li');
             li.textContent = file.name;
+            const removeButton = document.createElement('button');
+            removeButton.textContent = '删除';
+            removeButton.className = 'remove-btn';
+            removeButton.addEventListener('click', () => {
+                if (confirm(`确定要删除文件 ${file.name} 吗？`)) {
+                    filesArray.splice(index, 1);
+                    updateFileList();
+                }
+            });
+            li.appendChild(removeButton);
             fileList.appendChild(li);
         });
+
+        if (filesArray.length > 5) {
+            const showMoreLi = document.createElement('li');
+            const showMoreLink = document.createElement('span');
+            showMoreLink.textContent = '显示更多...';
+            showMoreLink.className = 'show-more';
+            showMoreLink.addEventListener('click', () => {
+                showMoreLink.style.display = 'none';
+                const moreFiles = filesArray.slice(5);
+                moreFiles.forEach((file, index) => {
+                    const li = document.createElement('li');
+                    li.textContent = file.name;
+                    const removeButton = document.createElement('button');
+                    removeButton.textContent = '删除';
+                    removeButton.className = 'remove-btn';
+                    removeButton.addEventListener('click', () => {
+                        if (confirm(`确定要删除文件 ${file.name} 吗？`)) {
+                            filesArray.splice(5 + index, 1);
+                            updateFileList();
+                        }
+                    });
+                    li.appendChild(removeButton);
+                    fileList.appendChild(li);
+                });
+            });
+            showMoreLi.appendChild(showMoreLink);
+            fileList.appendChild(showMoreLi);
+        }
     }
 
-    fileInput.addEventListener('change', () => {
-        updateFileList(fileInput.files);
-    });
+    function addFile(file) {
+        if (file.type !== 'application/pdf') {
+            alert('仅支持PDF文件');
+            return;
+        }
+        const existingFileIndex = filesArray.findIndex(f => f.name === file.name);
+        if (existingFileIndex > -1) {
+            if (confirm(`文件 ${file.name} 已存在，是否覆盖？`)) {
+                filesArray[existingFileIndex] = file;
+            } else {
+                // let fileCount = 1;
+                // let newFileName;
+                // // do {
+                // //     newFileName = file.name.replace(/(\.[^.]*)?$/, `(${fileCount++})$1`);
+                // // } while (filesArray.findIndex(f => f.name === newFileName) > -1);
+                // // const newFile = new File([file], newFileName, { type: file.type });
+                // const newFile = new File([file], f.name,{ type: file.type });
+                // filesArray.push(newFile);
+            }
+        } else {
+            filesArray.push(file);
+        }
+        updateFileList();
+    }
 
-    dropZone.addEventListener('dragover', (event) => {
-        event.preventDefault();
-        dropZone.style.backgroundColor = '#e9ecef';
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#0056b3';
     });
 
     dropZone.addEventListener('dragleave', () => {
-        dropZone.style.backgroundColor = '';
+        dropZone.style.borderColor = '#007bff';
     });
 
-    dropZone.addEventListener('drop', (event) => {
-        event.preventDefault();
-        dropZone.style.backgroundColor = '';
-        const files = event.dataTransfer.files;
-        fileInput.files = files;
-        updateFileList(files);
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#007bff';
+        const files = Array.from(e.dataTransfer.files);
+        files.forEach(file => addFile(file));
     });
 
-    uploadForm.addEventListener('submit', async function (event) {
-        event.preventDefault();
+    fileInput.addEventListener('change', () => {
+        const files = Array.from(fileInput.files);
+        files.forEach(file => addFile(file));
+    });
 
-        if (!fileInput.files.length) {
-            messageDiv.textContent = '请上传至少一个PDF文件';
-            messageDiv.className = 'message error';
-            messageDiv.style.display = 'block';
-            return;
-        }
-
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
         const formData = new FormData();
-        Array.from(fileInput.files).forEach(file => {
-            if (file.type !== 'application/pdf') {
-                messageDiv.textContent = '仅支持PDF文件';
-                messageDiv.className = 'message error';
-                messageDiv.style.display = 'block';
-                return;
-            }
-            formData.append('files', file);
-        });
+        filesArray.forEach(file => formData.append('files', file));
 
+        loadingOverlay.style.display = 'flex';
         try {
             const response = await fetch('http://localhost:8080/api/upload', {
                 method: 'POST',
                 body: formData
             });
-
             const result = await response.json();
-
-            if (response.ok) {
-                messageDiv.textContent = result.message + '\nOCR结果: ' + result.ocrResult;
-                messageDiv.className = 'message success';
+        // try {
+        //     // 模拟测试响应
+        //     const response = {
+        //         code: 1,
+        //         msg:null,
+        //         // data:null
+        //         data:[
+        //             [
+        //                 null,
+        //                 {"Amount":100.00,"account":"101328988880014545","amount":100.00,"currencyType":"156","customerName":"孟和祥","fileName":"1003000230305202734749652","institution":"10292","subaccountId":"000156","transactionDateTime":"1720441655","transactionName":"个人结算账户存款","voucherId":"14865771"}
+        //             ],
+        //         [
+        //             {"Amount":100.0,"account":null,"amount":100.0,"currencyType":"156","customerName":"孟和祥","fileName":"1003000230305202734749652","institution":"10293","subaccountId":"000156","transactionDateTime":"1720441655","transactionName":"个人结算账户存款","voucherId":"14865771"},
+        //             {"Amount":100.00,"account":"101328988880014545","amount":100.00,"currencyType":"156","customerName":"孟和祥","fileName":"1003000230305202734749652","institution":"10292","subaccountId":"000156","transactionDateTime":"1720441655","transactionName":"个人结算账户存款","voucherId":"14865771"}
+        //         ],
+        //         [
+        //             {"Amount":100.0,"account":"6214633131150003308","amount":100.0,"currencyType":"156","customerName":"季侃曝","fileName":"1003000230305202826749680","institution":"10294","subaccountId":"000156","transactionDateTime":"1720441707","transactionName":"个人结算账户存款","voucherId":"01449065"},
+        //             {"Amount":100.00,"account":"6214633131150003308","amount":100.00,"currencyType":"156","customerName":"季侃曝","fileName":"1003000230305202826749680","institution":"10292","subaccountId":"000156","transactionDateTime":"1720441707","transactionName":"个人结算账户存款","voucherId":"01449065"}
+        //         ]
+        //     ]
+        //     };
+        //
+        //     // 模拟异步响应
+        //     await new Promise(resolve => setTimeout(resolve, 1000));
+            if (result.code === 1) {
+                if(result.data.length===0) {
+                    loadingMessage.textContent = '全部识别正确';
+                    renewBtn.classList.remove('renew');
+                }else{
+                localStorage.setItem('ocrResult', JSON.stringify(result));
+                loadingMessage.textContent = '识别已完成';
+                viewResultBtn.classList.remove('hidden');
+                }
             } else {
-                messageDiv.textContent = result.message || '上传失败';
-                messageDiv.className = 'message error';
+                throw new Error(result.msg || '识别失败,请再次上传');
             }
         } catch (error) {
-            messageDiv.textContent = '上传过程中发生错误';
-            messageDiv.className = 'message error';
+            loadingMessage.textContent = '识别失败: ' + error.message +'，请联系开发人员。';
+            renewBtn.classList.remove('renew');
         }
-
-        messageDiv.style.display = 'block';
     });
+
+    function viewResult() {
+        window.location.href = 'result.html';
+    }
+    function renew() {
+        window.location.href = 'index.html';
+    }
 </script>
 </body>
 </html>
